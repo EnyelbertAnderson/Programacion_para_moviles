@@ -1,0 +1,196 @@
+ * Descripción: Actividad para escuchar el audio seleccionado.
+ * Autor: Enyelbert Anderson Panta Huaracha
+ * Fecha creación: 21/09/2024
+ * Última modificación: 22/09/2024
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.myapplication">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false" />
+
+    </application>
+</manifest>
+
+
+playeractivity
+
+package com.example.myapplication
+
+import androidx.appcompat.app.AppCompatActivity
+import android.media.MediaPlayer
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+class PlayerActivity : AppCompatActivity() {
+
+    private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var textAudioName: TextView
+    private lateinit var btnReproducir: Button
+    private lateinit var btnPausar: Button
+    private lateinit var btnDetener: Button
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_player)
+
+        textAudioName = findViewById(R.id.text_audio_name)
+        btnReproducir = findViewById(R.id.btn_reproducir)
+        btnPausar = findViewById(R.id.btn_pausar)
+        btnDetener = findViewById(R.id.btn_detener)
+
+        val audioName = intent.getStringExtra("audio_name")
+        textAudioName.text = audioName
+
+        val audioResId = resources.getIdentifier(audioName, "raw", packageName)
+        mediaPlayer = MediaPlayer.create(this, audioResId)
+
+        btnReproducir.setOnClickListener {
+            mediaPlayer.start()
+        }
+
+        btnPausar.setOnClickListener {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.pause()
+            }
+        }
+
+        btnDetener.setOnClickListener {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+                mediaPlayer.prepare() // Preparar para reiniciar
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release()
+    }
+}
+
+
+
+mainactivity
+
+package com.example.myapplication
+
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.Spinner
+import android.content.Intent
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var spinnerAudios: Spinner
+    private lateinit var btnSeleccionar: Button
+    private val audios = arrayOf("audio1", "audio2", "audio3", "audio4", "audio5")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        spinnerAudios = findViewById(R.id.spinner_audios)
+        btnSeleccionar = findViewById(R.id.btn_seleccionar)
+
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, audios)
+        spinnerAudios.adapter = adapter
+
+        btnSeleccionar.setOnClickListener {
+            val selectedAudio = spinnerAudios.selectedItem.toString()
+            val intent = Intent(this, PlayerActivity::class.java)
+            intent.putExtra("audio_name", selectedAudio)
+            startActivity(intent)
+        }
+    }
+}
+
+main.xml
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Selecciona un audio"
+        android:textSize="24sp" />
+
+    <Spinner
+        android:id="@+id/spinner_audios"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_seleccionar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Seleccionar" />
+</LinearLayout>
+
+
+player.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/imagen1" />
+
+    <TextView
+        android:id="@+id/text_audio_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="24sp" />
+
+    <Button
+        android:id="@+id/btn_reproducir"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reproducir" />
+
+    <Button
+        android:id="@+id/btn_pausar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pausar" />
+
+    <Button
+        android:id="@+id/btn_detener"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Detener" />
+</LinearLayout>

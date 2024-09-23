@@ -1,0 +1,200 @@
+ * Descripción: Actividad para mostrar la imagen seleccionada con fragments.
+ * Autor: Enyelbert Anderson Panta Huaracha
+ * Fecha creación: 22/09/2024
+ * Última modificación: 22/09/2024
+
+package com.example.myapplication
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+
+class MainActivity : AppCompatActivity(), SeleccionarImagenFragment.OnImagenSeleccionadaListener {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        if (savedInstanceState == null) {
+            val transaction = supportFragmentManager.beginTransaction()
+            transaction.replace(R.id.fragment_container, SeleccionarImagenFragment())
+            transaction.commit() // Usar el commit dentro de la transacción estándar
+        }
+    }
+
+    override fun onImagenSeleccionada(imageName: String) {
+        val mostrarImagenFragment = MostrarImagenFragment.newInstance(imageName)
+        val transaction = supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.fragment_container, mostrarImagenFragment)
+        transaction.addToBackStack(null) // Añadir a la pila para retroceder
+        transaction.commit() // Finalizar la transacción
+    }
+}
+
+
+
+package com.example.myapplication
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
+import androidx.fragment.app.Fragment
+
+class MostrarImagenFragment : Fragment() {
+
+    companion object {
+        private const val ARG_IMAGE_NAME = "imageName"
+
+        fun newInstance(imageName: String) = MostrarImagenFragment().apply {
+            arguments = Bundle().apply {
+                putString(ARG_IMAGE_NAME, imageName)
+            }
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_mostrar_imagen, container, false)
+        val imageView = view.findViewById<ImageView>(R.id.imageView)
+
+        val imageName = arguments?.getString(ARG_IMAGE_NAME)
+        val imageResId = when (imageName) {
+            "Imagen 1" -> R.drawable.image1
+            "Imagen 2" -> R.drawable.image2
+            else -> R.drawable.default_image
+        }
+
+        imageView.setImageResource(imageResId)
+
+        view.findViewById<Button>(R.id.btnBack).setOnClickListener {
+            requireActivity().supportFragmentManager.popBackStack()
+        }
+
+        return view
+    }
+}
+
+
+
+package com.example.myapplication
+
+import android.content.Context
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.Spinner
+import androidx.fragment.app.Fragment
+
+class SeleccionarImagenFragment : Fragment() {
+
+    private lateinit var imageSpinner: Spinner
+    private var listener: OnImagenSeleccionadaListener? = null
+
+    interface OnImagenSeleccionadaListener {
+        fun onImagenSeleccionada(imageName: String)
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_seleccionar_imagen, container, false)
+
+        imageSpinner = view.findViewById(R.id.imageSpinner)
+
+        val imageNames = arrayOf("Imagen 1", "Imagen 2", "Imagen 3")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, imageNames)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        imageSpinner.adapter = adapter
+
+        view.findViewById<Button>(R.id.btnNext).setOnClickListener {
+            val selectedImageName = imageSpinner.selectedItem.toString()
+            listener?.onImagenSeleccionada(selectedImageName)
+        }
+
+        return view
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnImagenSeleccionadaListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context must implement OnImagenSeleccionadaListener")
+        }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        listener = null
+    }
+}
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- Contenedor para los fragmentos -->
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scaleType="centerCrop" />
+
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Volver" />
+</LinearLayout>
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <Spinner
+        android:id="@+id/imageSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnNext"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Siguiente" />
+</LinearLayout>

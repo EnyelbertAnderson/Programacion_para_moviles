@@ -1,0 +1,251 @@
+
+
+ * Descripción: Actividad para musica con fragments.
+ * Autor: Enyelbert Anderson Panta Huaracha
+ * Fecha creación: 22/09/2024
+ * Última modificación: 22/09/2024package com.example.myapplication
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+
+class MainActivity : AppCompatActivity(), SeleccionAudioFragment.OnAudioSeleccionadoListener {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        // Cargar el fragmento de selección de audio
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, SeleccionAudioFragment())
+                .commit()
+        }
+    }
+
+    override fun onAudioSeleccionado(audio: String) {
+        // Cambiar al fragmento de reproducción de audio
+        val reproductorFragment = ReproductorAudioFragment.newInstance(audio)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, reproductorFragment)
+            .addToBackStack(null)  // Para poder volver al fragmento anterior
+            .commit()
+    }
+}
+
+
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.myapplication">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="false" />
+
+    </application>
+</manifest>
+
+
+package com.example.myapplication
+
+import android.media.MediaPlayer
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+
+class ReproductorAudioFragment : Fragment() {
+
+    private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var textAudioName: TextView
+    private lateinit var btnReproducir: Button
+    private lateinit var btnPausar: Button
+    private lateinit var btnDetener: Button
+    private var audioResId: Int = 0
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_reproductor_audio, container, false)
+
+        textAudioName = view.findViewById(R.id.text_audio_name)
+        btnReproducir = view.findViewById(R.id.btn_reproducir)
+        btnPausar = view.findViewById(R.id.btn_pausar)
+        btnDetener = view.findViewById(R.id.btn_detener)
+
+        val audioName = arguments?.getString("audio_name")
+        textAudioName.text = audioName
+
+        // Obtener el identificador del recurso de audio
+        audioResId = resources.getIdentifier(audioName, "raw", requireContext().packageName)
+        mediaPlayer = MediaPlayer.create(requireContext(), audioResId)
+
+        // Botones de control
+        btnReproducir.setOnClickListener { mediaPlayer.start() }
+        btnPausar.setOnClickListener { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
+        btnDetener.setOnClickListener {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+                mediaPlayer.prepare() // Preparar para reiniciar
+            }
+        }
+
+        return view
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release() // Liberar recursos del MediaPlayer
+    }
+
+    companion object {
+        fun newInstance(audioName: String): ReproductorAudioFragment {
+            val fragment = ReproductorAudioFragment()
+            val args = Bundle()
+            args.putString("audio_name", audioName)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+}
+
+package com.example.myapplication
+
+import android.content.Context
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.Spinner
+import androidx.fragment.app.Fragment
+
+class SeleccionAudioFragment : Fragment() {
+
+    private lateinit var spinnerAudios: Spinner
+    private lateinit var btnSeleccionar: Button
+    private var listener: OnAudioSeleccionadoListener? = null
+    private val audios = arrayOf("audio1", "audio2", "audio3", "audio4", "audio5")
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_seleccion_audio, container, false)
+
+        spinnerAudios = view.findViewById(R.id.spinner_audios)
+        btnSeleccionar = view.findViewById(R.id.btn_seleccionar)
+
+        // Configurar el adaptador del Spinner
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, audios)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerAudios.adapter = adapter
+
+        // Manejar el botón de seleccionar
+        btnSeleccionar.setOnClickListener {
+            val audioSeleccionado = spinnerAudios.selectedItem.toString()
+            listener?.onAudioSeleccionado(audioSeleccionado)
+        }
+
+        return view
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnAudioSeleccionadoListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context debe implementar OnAudioSeleccionadoListener")
+        }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        listener = null
+    }
+
+    interface OnAudioSeleccionadoListener {
+        fun onAudioSeleccionado(audio: String)
+    }
+}
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fragment_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <Spinner
+        android:id="@+id/spinner_audios"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_seleccionar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Seleccionar" />
+</LinearLayout>
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/text_audio_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nombre del Audio" />
+
+    <Button
+        android:id="@+id/btn_reproducir"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reproducir" />
+
+    <Button
+        android:id="@+id/btn_pausar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Pausar" />
+
+    <Button
+        android:id="@+id/btn_detener"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Detener" />
+</LinearLayout>

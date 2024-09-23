@@ -1,0 +1,177 @@
+ * Descripción: Actividad para mostrar la imagen seleccionada.
+ * Autor: Enyelbert Anderson Panta Huaracha
+ * Fecha creación: 21/09/2024
+ * Última modificación: 22/09/2024
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.myapplication">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication">
+
+        <!-- Registro de MainActivity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"> 
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ImageActivity"
+            android:exported="false" /> 
+
+    </application>
+</manifest>
+
+MainActivity.kt
+
+package com.example.myapplication
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import android.widget.Spinner
+import android.widget.ArrayAdapter
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var imageSpinner: Spinner
+    private lateinit var selectedImageName: String
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        imageSpinner = findViewById(R.id.imageSpinner)
+
+
+        val imageNames = arrayOf("Imagen 1", "Imagen 2", "Imagen 3")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, imageNames)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        imageSpinner.adapter = adapter
+
+      
+        savedInstanceState?.let {
+            val spinnerPosition = it.getInt("selectedPosition")
+            imageSpinner.setSelection(spinnerPosition)
+        }
+
+
+        findViewById<Button>(R.id.btnNext).setOnClickListener {
+            selectedImageName = imageSpinner.selectedItem.toString()
+            val intent = Intent(this, ImageActivity::class.java)
+            intent.putExtra("imageName", selectedImageName)
+            startActivity(intent)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("selectedPosition", imageSpinner.selectedItemPosition)
+    }
+}
+
+ImageActivity.kt
+
+package com.example.myapplication
+
+import android.os.Bundle
+import android.widget.Button
+import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
+
+class ImageActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_image)
+
+        val imageView = findViewById<ImageView>(R.id.imageView)
+        val imageName = intent.getStringExtra("imageName")
+
+      
+        val imageResId = when (imageName) {
+            "Imagen 1" -> R.drawable.image1
+            "Imagen 2" -> R.drawable.image2
+            else -> R.drawable.default_image
+        }
+
+        imageView.setImageResource(imageResId)
+
+
+        findViewById<Button>(R.id.btnBack).setOnClickListener {
+            finish() // Regresar a la actividad anterior
+        }
+    }
+}
+
+
+activity_image.xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="centerCrop" />
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Volver" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <Spinner
+            android:id="@+id/imageSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btnNext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Siguiente" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+

@@ -1,0 +1,336 @@
+Descripción: RecyclerView.
+Autor: Enyelbert Anderson Panta Huaracha
+Fecha creación: 30/09/2024
+Última modificación: 01/10/2024
+
+
+package com.example.myapplication
+
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class Audio(
+    val name: String,
+    val imageResId: Int,
+    val duration: String,
+    val audioResId: Int
+) : Parcelable
+
+
+
+package com.example.myapplication
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+
+class AudioAdapter(
+    private val audioList: List<Audio>,
+    private val itemClick: (Audio) -> Unit
+) : RecyclerView.Adapter<AudioAdapter.AudioViewHolder>() {
+
+    inner class AudioViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val audioTitle: TextView = itemView.findViewById(R.id.audio_title)
+        private val audioImage: ImageView = itemView.findViewById(R.id.audio_image)
+
+        fun bind(audio: Audio) {
+            audioTitle.text = audio.name
+            audioImage.setImageResource(audio.imageResId)
+
+            itemView.setOnClickListener {
+                itemClick(audio) // Llama al callback cuando se hace clic
+            }
+        }
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AudioViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.audio_item, parent, false) // Asegúrate de que este layout exista
+        return AudioViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: AudioViewHolder, position: Int) {
+        holder.bind(audioList[position])
+    }
+
+    override fun getItemCount(): Int = audioList.size
+}
+
+
+
+
+
+package com.example.myapplication
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+
+class AudioListFragment : Fragment() {
+
+    private lateinit var audioList: List<Audio>
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_audio_list, container, false)
+
+        // Inicializa la lista de audios
+        audioList = listOf(
+            Audio("Audio 1", R.drawable.audio1_image, "3:25", R.raw.audio1),
+            Audio("Audio 2", R.drawable.audio2_image, "3:25", R.raw.audio2),
+            Audio("Audio 3", R.drawable.audio3_image, "3:25", R.raw.audio3),
+            Audio("Audio 4", R.drawable.audio4_image, "3:25", R.raw.audio4),
+            Audio("Audio 5", R.drawable.audio5_image, "3:25", R.raw.audio5)
+        )
+
+        val recyclerView = view.findViewById<RecyclerView>(R.id.audio_recycler_view)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        recyclerView.adapter = AudioAdapter(audioList) { selectedAudio ->
+            val fragment = AudioPlayerFragment.newInstance(selectedAudio)
+            activity?.supportFragmentManager?.beginTransaction()
+                ?.replace(R.id.fragment_container, fragment)
+                ?.addToBackStack(null)
+                ?.commit()
+        }
+
+        return view
+    }
+}
+
+
+
+
+package com.example.myapplication
+
+import android.media.MediaPlayer
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+
+class AudioPlayerFragment : Fragment() {
+
+    private lateinit var mediaPlayer: MediaPlayer
+    private var isPlaying = false
+    private var audioResourceId: Int = 0
+
+    companion object {
+        private const val ARG_AUDIO = "audio"
+
+        fun newInstance(audio: Audio): AudioPlayerFragment {
+            val fragment = AudioPlayerFragment()
+            val args = Bundle()
+            args.putParcelable(ARG_AUDIO, audio)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_audio_player, container, false)
+
+        val audio = arguments?.getParcelable<Audio>(ARG_AUDIO)
+
+        val audioImage = view.findViewById<ImageView>(R.id.audio_image)
+        val audioName = view.findViewById<TextView>(R.id.audio_name)
+        val playButton = view.findViewById<Button>(R.id.play_button)
+        val pauseButton = view.findViewById<Button>(R.id.pause_button)
+        val stopButton = view.findViewById<Button>(R.id.stop_button)
+
+        audio?.let {
+            audioImage.setImageResource(it.imageResId)
+            audioName.text = it.name
+            audioResourceId = it.audioResId
+        }
+
+        mediaPlayer = MediaPlayer.create(context, audioResourceId)
+
+        playButton.setOnClickListener {
+            if (!isPlaying) {
+                mediaPlayer.start()
+                isPlaying = true
+            }
+        }
+
+        pauseButton.setOnClickListener {
+            if (isPlaying) {
+                mediaPlayer.pause()
+                isPlaying = false
+            }
+        }
+
+        stopButton.setOnClickListener {
+            if (isPlaying) {
+                mediaPlayer.stop()
+                mediaPlayer.reset()
+                mediaPlayer = MediaPlayer.create(context, audioResourceId)
+                isPlaying = false
+            }
+        }
+
+        return view
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isPlaying) {
+            mediaPlayer.release()
+        }
+    }
+}	
+
+
+
+
+package com.example.myapplication
+
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, AudioListFragment())
+                .commit()
+        }
+    }
+}
+
+xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/audio_image"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:contentDescription="@string/audio_image_desc" />
+
+    <TextView
+        android:id="@+id/audio_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:textSize="16sp" />
+</LinearLayout>
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/audio_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/audio_image"
+            android:layout_width="200dp"
+            android:layout_height="200dp" />
+
+        <TextView
+            android:id="@+id/audio_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp" />
+
+        <Button
+            android:id="@+id/play_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reproducir"
+            android:layout_marginTop="16dp" />
+
+        <Button
+            android:id="@+id/pause_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pausar"
+            android:layout_marginTop="16dp" />
+
+        <Button
+            android:id="@+id/stop_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Detener"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+<resources>
+    <string name="app_name">Music Player</string>
+    <string name="audio_image_desc">Descripción de la imagen de audio</string>
+</resources>
+
+
+plugins
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    id("kotlin-parcelize")
+}
+
+
+
